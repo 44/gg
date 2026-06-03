@@ -7,7 +7,7 @@ import sys
 
 from .party import cmd_party
 
-from .cmd_alias import cmd_alias
+from .cmd_install import cmd_install
 from .cmd_cleanup import cmd_cleanup
 from .cmd_fff import cmd_fff
 from .cmd_mb import cmd_mb
@@ -52,18 +52,15 @@ def main():
     )
     pff_parser.set_defaults(func=cmd_pff)
 
-    alias_parser = subparsers.add_parser(
-        "alias",
-        help="Configure git aliases globally via uvx",
-        description="Sets up global git aliases for skeit commands (fff, mb, ms, party, pff, wc) "
-        "using uvx. By default, aliases reference the latest version from the git repository. "
-        "Use --offline to run without network access when already installed.",
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Install skeit commands as executable scripts",
+        description="Creates executable wrapper scripts for skeit commands (fff, mb, ms, party, "
+        "pff, wc, rb, cleanup) in ~/.local/bin (Linux) or %%USERPROFILE%%\\bin (Windows). "
+        "Scripts use uv to run the latest version from GitHub. Overwrites existing scripts.",
         parents=[common],
     )
-    alias_parser.add_argument(
-        "--offline", action="store_true", help="use uvx --offline"
-    )
-    alias_parser.set_defaults(func=cmd_alias)
+    install_parser.set_defaults(func=cmd_install)
 
     ms_parser = subparsers.add_parser(
         "ms",
