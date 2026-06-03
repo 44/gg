@@ -24,7 +24,7 @@ def main():
     )
 
     parser = argparse.ArgumentParser(
-        description="git helper tools",
+        description="Skeit - git productivity tools for fast-forward workflows and multi-branch merging.",
         parents=[common],
     )
     parser.add_argument(
@@ -33,17 +33,32 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     fff_parser = subparsers.add_parser(
-        "fff", help="fetch and fast-forward local branches", parents=[common]
+        "fff",
+        help="Fetch all branches and fast-forward local branches",
+        description="Fetches all configured remotes with pruning, then fast-forwards each local branch "
+        "whose upstream can be applied without divergence. Branches with unpushed local commits "
+        "or that have diverged from upstream are skipped.",
+        parents=[common],
     )
     fff_parser.set_defaults(func=cmd_fff)
 
     pff_parser = subparsers.add_parser(
-        "pff", help="push local branches ahead of upstream", parents=[common]
+        "pff",
+        help="Push local branches that can be fast-forwarded on remote",
+        description="Pushes all local branches that are strictly ahead of their upstream (no new "
+        "commits on the remote side). Branches with diverged history are skipped to avoid "
+        "force-pushing.",
+        parents=[common],
     )
     pff_parser.set_defaults(func=cmd_pff)
 
     alias_parser = subparsers.add_parser(
-        "alias", help="configure git aliases globally via uvx", parents=[common]
+        "alias",
+        help="Configure git aliases globally via uvx",
+        description="Sets up global git aliases for skeit commands (fff, mb, ms, party, pff, wc) "
+        "using uvx. By default, aliases reference the latest version from the git repository. "
+        "Use --offline to run without network access when already installed.",
+        parents=[common],
     )
     alias_parser.add_argument(
         "--offline", action="store_true", help="use uvx --offline"
@@ -51,7 +66,13 @@ def main():
     alias_parser.set_defaults(func=cmd_alias)
 
     ms_parser = subparsers.add_parser(
-        "ms", help="merge and switch branch via worktree", parents=[common]
+        "ms",
+        help="Merge default branch into branch and switch to it",
+        description="Creates a temporary git worktree, checks out the specified branch, merges the "
+        "local default branch (main/master) into it, then switches the main working directory "
+        "to the refreshed branch. Useful for updating a feature branch without losing your "
+        "current working state.",
+        parents=[common],
     )
     ms_parser.add_argument("branch", nargs="?", help="branch to merge and switch to")
     ms_parser.add_argument(
@@ -70,7 +91,10 @@ def main():
 
     mb_parser = subparsers.add_parser(
         "mb",
-        help="merge origin default branch into branch via worktree",
+        help="Merge origin/default branch into branch via worktree",
+        description="Creates a temporary git worktree, checks out the specified branch, and merges "
+        "origin/<default-branch> into it. Unlike ms, this merges the remote tracking branch "
+        "rather than the local default branch, ensuring the latest remote changes are pulled in.",
         parents=[common],
     )
     mb_parser.add_argument("branch", nargs="?", help="branch to merge into")
@@ -89,7 +113,13 @@ def main():
     mb_parser.set_defaults(func=cmd_mb)
 
     rb_parser = subparsers.add_parser(
-        "rb", help="rebase branch onto default branch via worktree", parents=[common]
+        "rb",
+        help="Rebase branch onto default branch via worktree",
+        description="Creates a temporary git worktree, checks out the specified branch, rebases it "
+        "onto the local default branch (main/master), then switches the main working directory "
+        "to the rebased branch. Conflicts are reported and the worktree is left in place for "
+        "resolution.",
+        parents=[common],
     )
     rb_parser.add_argument("branch", nargs="?", help="branch to rebase")
     rb_parser.add_argument(
@@ -107,12 +137,20 @@ def main():
     rb_parser.set_defaults(func=cmd_rb)
 
     party_parser = subparsers.add_parser(
-        "party", help="party mode for merging multiple branches", parents=[common]
+        "party",
+        help="Multi-branch merging workflow (party mode)",
+        description="Party mode enables working on multiple branches simultaneously. It creates a "
+        "merged view of all party branches in a worktree, allowing you to see and manage the "
+        "combined state. Use sub-commands to start, add branches, move commits, sync, and "
+        "finish the party.",
+        parents=[common],
     )
     party_sub = party_parser.add_subparsers(dest="party_command", required=True)
 
     party_start = party_sub.add_parser(
-        "start", help="start a new party", parents=[common]
+        "start",
+        help="Start a new party with the current branch and optional additional branches",
+        parents=[common],
     )
     party_start.add_argument("name", help="name for the party")
     party_start.add_argument(
@@ -121,52 +159,71 @@ def main():
     party_start.set_defaults(func=cmd_party)
 
     party_add = party_sub.add_parser(
-        "add", help="add a branch to the party", parents=[common]
+        "add",
+        help="Add a branch to the active party and rebuild merged view",
+        parents=[common],
     )
     party_add.add_argument("branch", help="branch to add")
     party_add.set_defaults(func=cmd_party)
 
     party_default = party_sub.add_parser(
-        "default", help="set the default branch for the party", parents=[common]
+        "default",
+        help="Set the default branch for the party (target for sync)",
+        parents=[common],
     )
     party_default.add_argument("branch", help="branch to set as default")
     party_default.set_defaults(func=cmd_party)
 
     party_move = party_sub.add_parser(
-        "move", help="move a commit from merged view to a branch", parents=[common]
+        "move",
+        help="Cherry-pick a commit from merged view to a specific party branch",
+        parents=[common],
     )
     party_move.add_argument("commit", help="commit hash to move")
     party_move.add_argument("branch", help="target branch")
     party_move.set_defaults(func=cmd_party)
 
     party_sync = party_sub.add_parser(
-        "sync", help="sync the merged view with party branches", parents=[common]
+        "sync",
+        help="Cherry-pick unassigned commits to default branch and rebuild merged view",
+        parents=[common],
     )
     party_sync.set_defaults(func=cmd_party)
 
     party_status = party_sub.add_parser(
-        "status", help="show party status", parents=[common]
+        "status",
+        help="Display active party configuration, branches, and unassigned commits",
+        parents=[common],
     )
     party_status.set_defaults(func=cmd_party)
 
     party_finish = party_sub.add_parser(
-        "finish", help="finish the party", parents=[common]
+        "finish",
+        help="Sync changes, checkout default branch, and clean up party resources",
+        parents=[common],
     )
     party_finish.set_defaults(func=cmd_party)
 
     party_continue = party_sub.add_parser(
-        "continue", help="continue after resolving conflicts", parents=[common]
+        "continue",
+        help="Continue a pending cherry-pick or sync after resolving conflicts",
+        parents=[common],
     )
     party_continue.set_defaults(func=cmd_party)
 
     party_abort = party_sub.add_parser(
-        "abort", help="abort pending operation", parents=[common]
+        "abort",
+        help="Abort the current cherry-pick or merge operation and clear pending state",
+        parents=[common],
     )
     party_abort.set_defaults(func=cmd_party)
 
     wc_parser = subparsers.add_parser(
         "wc",
-        help="show combined git diff --name-status and --numstat",
+        help="Show combined diff stats with file status and line counts",
+        description="Displays a combined view of git diff --name-status and --numstat, showing "
+        "the status (Added, Modified, Deleted, Renamed) of each file along with "
+        "added/deleted line counts. Defaults to diff against origin/<default-branch>.",
         parents=[common],
     )
     wc_parser.add_argument(
@@ -176,7 +233,10 @@ def main():
 
     cleanup_parser = subparsers.add_parser(
         "cleanup",
-        help="delete local branches merged into default branch",
+        help="Delete local branches that have been merged into the default branch",
+        description="Identifies local branches without upstream tracking that have been fully "
+        "merged into the default branch and deletes them. The current branch, default branch, "
+        "and branches with unpushed commits are preserved. Supports dry-run and force-delete modes.",
         parents=[common],
     )
     cleanup_parser.add_argument(
