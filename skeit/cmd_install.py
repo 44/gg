@@ -3,7 +3,7 @@ import platform
 import stat
 import sys
 
-REPO_URL = "https://github.com/44/skeit"
+REPO_URL = "git+https://github.com/44/skeit"
 
 COMMANDS = ["fff", "mb", "ms", "party", "pff", "wc", "rb", "cleanup"]
 
@@ -28,12 +28,12 @@ def cmd_install(args):
         if is_windows:
             script_path = os.path.join(bin_dir, f"git-{cmd}.cmd")
             script_content = f"""@echo off
-uv --no-config --from {REPO_URL} skeit {cmd} %*
+uvx --no-config --from {REPO_URL} skeit {cmd} %*
 """
         else:
             script_path = os.path.join(bin_dir, f"git-{cmd}")
             script_content = f"""#!/bin/sh
-exec uv --no-config --from {REPO_URL} skeit {cmd} "$@"
+exec uvx --no-config --from {REPO_URL} skeit {cmd} "$@"
 """
 
         try:
