@@ -26,12 +26,12 @@ def cmd_install(args):
 
     for cmd in COMMANDS:
         if is_windows:
-            script_path = os.path.join(bin_dir, f"skeit-{cmd}.cmd")
+            script_path = os.path.join(bin_dir, f"git-{cmd}.cmd")
             script_content = f"""@echo off
 uv --no-config --from {REPO_URL} skeit {cmd} %*
 """
         else:
-            script_path = os.path.join(bin_dir, f"skeit-{cmd}")
+            script_path = os.path.join(bin_dir, f"git-{cmd}")
             script_content = f"""#!/bin/sh
 exec uv --no-config --from {REPO_URL} skeit {cmd} "$@"
 """
