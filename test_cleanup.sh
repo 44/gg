@@ -15,8 +15,8 @@ trap cleanup EXIT
 
 cd "$TEST_DIR"
 
-skeit() {
-    PYTHONPATH="$SCRIPT_DIR" python -m skeit "$@"
+gg() {
+    PYTHONPATH="$SCRIPT_DIR" python -m gg "$@"
 }
 
 git init
@@ -64,7 +64,7 @@ git branch
 echo ""
 
 echo "=== Running cleanup dry-run ==="
-skeit cleanup --dry-run
+gg cleanup --dry-run
 echo ""
 
 echo "=== Verify branches still exist after dry-run ==="
@@ -79,7 +79,7 @@ done
 
 echo ""
 echo "=== Running cleanup ==="
-skeit cleanup
+gg cleanup
 
 echo ""
 echo "=== Verify branches after cleanup ==="
@@ -118,7 +118,7 @@ fi
 echo ""
 echo "=== Current branch should not be deleted ==="
 git checkout feature3
-skeit cleanup
+gg cleanup
 if git rev-parse --verify "feature3" >/dev/null 2>&1; then
     echo "Current branch not deleted - OK"
 else
@@ -146,7 +146,7 @@ echo "Branches before cleanup:"
 git branch -vv
 echo ""
 
-skeit cleanup
+gg cleanup
 
 echo ""
 echo "feature3 (has upstream) - should remain:"
@@ -173,7 +173,7 @@ echo "Branches before cleanup:"
 git branch
 echo ""
 
-skeit cleanup
+gg cleanup
 
 echo ""
 echo "feature5 (not merged into main) - should remain:"

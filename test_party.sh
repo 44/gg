@@ -15,8 +15,8 @@ trap cleanup EXIT
 
 cd "$TEST_DIR"
 
-skeit() {
-    PYTHONPATH="$SCRIPT_DIR" python -m skeit "$@"
+gg() {
+    PYTHONPATH="$SCRIPT_DIR" python -m gg "$@"
 }
 
 # Setup
@@ -72,7 +72,7 @@ git branch -v
 echo ""
 
 echo "=== party start ==="
-skeit party start myparty feature1 feature2
+gg party start myparty feature1 feature2
 
 echo ""
 echo "=== After party start ==="
@@ -108,7 +108,7 @@ git log --oneline --no-merges party/myparty ^main ^feature1 ^feature2 || echo "(
 
 echo ""
 echo "=== party sync ==="
-skeit party sync
+gg party sync
 
 echo ""
 echo "=== After sync ==="
@@ -123,7 +123,7 @@ git log --oneline --no-merges party/myparty ^main ^feature1 ^feature2 || echo "(
 
 echo ""
 echo "=== party finish ==="
-skeit party finish
+gg party finish
 
 echo ""
 echo "=== Final state ==="

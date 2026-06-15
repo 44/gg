@@ -24,7 +24,7 @@ def main():
     )
 
     parser = argparse.ArgumentParser(
-        description="Skeit - git productivity tools for fast-forward workflows and multi-branch merging.",
+        description="gg - git productivity tools for fast-forward workflows and multi-branch merging.",
         parents=[common],
     )
     parser.add_argument(
@@ -54,8 +54,8 @@ def main():
 
     install_parser = subparsers.add_parser(
         "install",
-        help="Install skeit commands as executable scripts",
-        description="Creates executable wrapper scripts for skeit commands (fff, mb, ms, party, "
+        help="Install gg commands as executable scripts",
+        description="Creates executable wrapper scripts for gg commands (fff, mb, ms, party, "
         "pff, wc, rb, cleanup) in ~/.local/bin (Linux) or %%USERPROFILE%%\\bin (Windows). "
         "Scripts use uv to run the latest version from GitHub. Overwrites existing scripts.",
         parents=[common],

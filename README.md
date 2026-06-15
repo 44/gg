@@ -1,4 +1,4 @@
-# Skeit
+# gg
 
 ## Commands
 

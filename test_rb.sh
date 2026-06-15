@@ -15,8 +15,8 @@ trap cleanup EXIT
 
 cd "$TEST_DIR"
 
-skeit() {
-    PYTHONPATH="$SCRIPT_DIR" python -m skeit "$@"
+gg() {
+    PYTHONPATH="$SCRIPT_DIR" python -m gg "$@"
 }
 
 git init
@@ -45,7 +45,7 @@ git branch -v
 echo ""
 
 echo "=== Running rb feature1 ==="
-skeit rb feature1
+gg rb feature1
 
 echo ""
 echo "=== After rb ==="
@@ -77,7 +77,7 @@ git add main-3.txt
 git commit -m "main-3"
 
 git checkout main
-skeit rb feature2
+gg rb feature2
 
 if git log --oneline feature2 | grep -q "main-3"; then
     echo "PASS: feature2 has rebased onto updated main"

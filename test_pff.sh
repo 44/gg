@@ -15,8 +15,8 @@ trap cleanup EXIT
 
 cd "$TEST_DIR"
 
-skeit() {
-    PYTHONPATH="$SCRIPT_DIR" python -m skeit "$@"
+gg() {
+    PYTHONPATH="$SCRIPT_DIR" python -m gg "$@"
 }
 
 git init
@@ -57,7 +57,7 @@ git rev-list --left-right --count feature1...origin/feature1
 
 echo ""
 echo "=== Running pff ==="
-skeit pff
+gg pff
 
 echo ""
 echo "=== After pff ==="

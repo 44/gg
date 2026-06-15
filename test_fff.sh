@@ -15,8 +15,8 @@ trap cleanup EXIT
 
 cd "$TEST_DIR"
 
-skeit() {
-    PYTHONPATH="$SCRIPT_DIR" python -m skeit "$@"
+gg() {
+    PYTHONPATH="$SCRIPT_DIR" python -m gg "$@"
 }
 
 git init
@@ -60,7 +60,7 @@ git branch -v
 echo ""
 
 echo "=== Running fff ==="
-skeit fff
+gg fff
 
 echo ""
 echo "=== After fff ==="
@@ -82,7 +82,7 @@ git merge origin/main --no-edit || git merge origin/main
 
 echo ""
 echo "=== Running fff again ==="
-skeit fff
+gg fff
 
 echo ""
 echo "=== After fff ==="

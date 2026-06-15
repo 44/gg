@@ -482,7 +482,7 @@ def cmd_party_move(args):
     if result.returncode != 0:
         console_stderr.print("[red]Cherry-pick conflict detected[/red]")
         console_stderr.print(f"Worktree at: {worktree_path}")
-        console_stderr.print("Resolve conflicts, then run: skeit party continue")
+        console_stderr.print("Resolve conflicts, then run: gg party continue")
         return 1
 
     clear_pending_state(active)

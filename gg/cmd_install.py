@@ -3,7 +3,7 @@ import platform
 import stat
 import sys
 
-REPO_URL = "git+https://github.com/44/skeit"
+REPO_URL = "git+https://github.com/44/gg"
 
 COMMANDS = ["fff", "mb", "ms", "party", "pff", "wc", "rb", "cleanup"]
 
@@ -20,7 +20,7 @@ def cmd_install(args):
     os.makedirs(bin_dir, exist_ok=True)
 
     if not quiet:
-        print(f"Installing skeit commands to {bin_dir}", file=sys.stderr)
+        print(f"Installing gg commands to {bin_dir}", file=sys.stderr)
 
     is_windows = platform.system() == "Windows"
 
@@ -28,12 +28,12 @@ def cmd_install(args):
         if is_windows:
             script_path = os.path.join(bin_dir, f"git-{cmd}.cmd")
             script_content = f"""@echo off
-uvx --no-config --from {REPO_URL} skeit {cmd} %*
+uvx --no-config --from {REPO_URL} gg {cmd} %*
 """
         else:
             script_path = os.path.join(bin_dir, f"git-{cmd}")
             script_content = f"""#!/bin/sh
-exec uvx --no-config --from {REPO_URL} skeit {cmd} "$@"
+exec uvx --no-config --from {REPO_URL} gg {cmd} "$@"
 """
 
         try:

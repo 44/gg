@@ -1,8 +1,8 @@
-# AGENTS.md - Skeit Project
+# AGENTS.md - gg Project
 
 ## Project Overview
 
-Skeit is a collection of git productivity tools/scripts. It provides:
+gg is a collection of git productivity tools/scripts. It provides:
 
 - **fff (fetch-fast-forward)**: Fetches upstream for all local branches and fast-forwards those that can be fast-forwarded.
 - **pff (push-fast-forward)**: Pushes all local branches to their upstream, but only if they can be fast-forwarded.
@@ -14,10 +14,10 @@ Skeit is a collection of git productivity tools/scripts. It provides:
 ### Running the tool
 
 ```bash
-PYTHONPATH=. python -m skeit <command>
+PYTHONPATH=. python -m gg <command>
 ```
 
-Or install with `pip install -e .` and run as `skeit <command>`.
+Or install with `pip install -e .` and run as `gg <command>`.
 
 ### Testing
 
@@ -33,7 +33,7 @@ This project performs git operations including potentially destructive ones (bra
    - Creates a temporary directory using `mktemp -d`
    - Initializes a fresh git repo in that directory
    - Sets up the test scenario (branches, commits, etc.)
-   - Runs the skeit commands being tested
+   - Runs the gg commands being tested
    - Verifies expected outcomes
    - Cleans up the temp directory on exit using a trap
 
@@ -56,8 +56,8 @@ trap cleanup EXIT
 
 cd "$TEST_DIR"
 
-skeit() {
-    PYTHONPATH="$SCRIPT_DIR" python -m skeit "$@"
+gg() {
+    PYTHONPATH="$SCRIPT_DIR" python -m gg "$@"
 }
 
 # Setup test repo
@@ -68,7 +68,7 @@ git config user.name "Test"
 # ... setup test scenario ...
 
 # Run tests
-skeit party start myparty feature1 feature2
+gg party start myparty feature1 feature2
 
 # Verify results
 echo "party/myparty commits:"

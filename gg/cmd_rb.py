@@ -52,7 +52,7 @@ def cmd_rb(args):
             f"Error: pending rebase for '{pending_branch}' at {pending_wt['path']}",
             file=sys.stderr,
         )
-        print("Run 'skeit rb --continue' or 'skeit rb --abort'", file=sys.stderr)
+        print("Run 'gg rb --continue' or 'gg rb --abort'", file=sys.stderr)
         return 1
 
     if has_uncommitted_changes():
@@ -136,7 +136,7 @@ def cmd_rb(args):
     if result.returncode != 0:
         console_stderr.print("[red]Rebase conflict detected[/red]")
         print(f"Worktree left at: {worktree_path}", file=sys.stderr)
-        print("Resolve conflicts, then run: skeit rb --continue", file=sys.stderr)
+        print("Resolve conflicts, then run: gg rb --continue", file=sys.stderr)
         return 1
     else:
         result = subprocess.run(

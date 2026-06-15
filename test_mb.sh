@@ -15,8 +15,8 @@ trap cleanup EXIT
 
 cd "$TEST_DIR"
 
-skeit() {
-    PYTHONPATH="$SCRIPT_DIR" python -m skeit "$@"
+gg() {
+    PYTHONPATH="$SCRIPT_DIR" python -m gg "$@"
 }
 
 git init
@@ -57,7 +57,7 @@ git checkout main
 
 echo ""
 echo "=== Running mb feature1 ==="
-skeit mb feature1
+gg mb feature1
 
 echo ""
 echo "=== After mb ==="
