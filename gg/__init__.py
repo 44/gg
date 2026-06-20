@@ -54,10 +54,11 @@ def main():
 
     install_parser = subparsers.add_parser(
         "install",
-        help="Install gg commands as executable scripts",
-        description="Creates executable wrapper scripts for gg commands (fff, mb, ms, party, "
-        "pff, wc, rb, cleanup) in ~/.local/bin (Linux) or %%USERPROFILE%%\\bin (Windows). "
-        "Scripts use uv to run the latest version from GitHub. Overwrites existing scripts.",
+        help="Install gg as a uv tool and create command wrappers",
+        description="Installs gg via 'uv tool install' from GitHub, then creates executable "
+        "wrapper scripts for gg commands (fff, mb, ms, party, pff, wc, rb, cleanup) in "
+        "~/.local/bin (Linux) or %%USERPROFILE%%\\bin (Windows). "
+        "Wrappers use 'uvx --offline' to run the locally installed tool. Overwrites existing scripts.",
         parents=[common],
     )
     install_parser.set_defaults(func=cmd_install)

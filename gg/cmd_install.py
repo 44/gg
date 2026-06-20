@@ -1,6 +1,7 @@
 import os
 import platform
 import stat
+import subprocess
 import sys
 
 REPO_URL = "git+https://github.com/44/gg"
@@ -14,26 +15,38 @@ def _get_bin_dir():
     return os.path.join(os.path.expanduser("~"), ".local", "bin")
 
 
+def _run(cmd, quiet):
+    if not quiet:
+        print(f"Running: {' '.join(cmd)}", file=sys.stderr)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(result.stderr, file=sys.stderr)
+        raise SystemExit(result.returncode)
+    return result
+
+
 def cmd_install(args):
     quiet = args.quiet
     bin_dir = _get_bin_dir()
-    os.makedirs(bin_dir, exist_ok=True)
+
+    _run(["uv", "tool", "install", "--no-config", "--from", REPO_URL, "gg"], quiet)
 
     if not quiet:
-        print(f"Installing gg commands to {bin_dir}", file=sys.stderr)
+        print(f"Installing gg command wrappers to {bin_dir}", file=sys.stderr)
 
+    os.makedirs(bin_dir, exist_ok=True)
     is_windows = platform.system() == "Windows"
 
     for cmd in COMMANDS:
         if is_windows:
             script_path = os.path.join(bin_dir, f"git-{cmd}.cmd")
             script_content = f"""@echo off
-uvx --no-config --from {REPO_URL} gg {cmd} %*
+uvx --offline gg {cmd} %*
 """
         else:
             script_path = os.path.join(bin_dir, f"git-{cmd}")
             script_content = f"""#!/bin/sh
-exec uvx --no-config --from {REPO_URL} gg {cmd} "$@"
+exec uvx --offline gg {cmd} "$@"
 """
 
         try:
