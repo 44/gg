@@ -15,6 +15,7 @@ from .cmd_ms import cmd_ms
 from .cmd_pff import cmd_pff
 from .cmd_rb import cmd_rb
 from .cmd_wc import cmd_wc
+from .cmd_pr import cmd_pr
 
 
 def main():
@@ -244,6 +245,22 @@ def main():
         "-f", "--force", action="store_true", help="force delete branches"
     )
     cleanup_parser.set_defaults(func=cmd_cleanup)
+
+    pr_parser = subparsers.add_parser(
+        "pr",
+        help="Manage Azure DevOps pull requests",
+        description="Manage Azure DevOps pull requests. Requires 'az' CLI to be installed and configured.",
+        parents=[common],
+    )
+    pr_sub = pr_parser.add_subparsers(dest="pr_command", required=True)
+
+    pr_list = pr_sub.add_parser(
+        "list",
+        help="List active pull requests",
+        description="Lists active Azure DevOps pull requests filtered by the current git user.",
+        parents=[common],
+    )
+    pr_list.set_defaults(func=cmd_pr)
 
     args = parser.parse_args()
     sys.exit(args.func(args))
