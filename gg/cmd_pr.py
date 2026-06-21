@@ -3,6 +3,7 @@ import os
 import shlex
 import subprocess
 import sys
+import tempfile
 
 from rich.console import Console
 from rich.text import Text
@@ -16,6 +17,7 @@ def cmd_pr(args):
     command = args.pr_command
     commands = {
         "list": cmd_pr_list,
+        "publish": cmd_pr_publish,
     }
     if command in commands:
         return commands[command](args)
@@ -34,6 +36,95 @@ def _get_git_email():
     return result.stdout.strip()
 
 
+def _ensure_path():
+    paths = os.environ.get("PATH", "").split(os.pathsep)
+    user_bin = os.path.expanduser("~/.local/bin")
+    if user_bin not in paths:
+        os.environ["PATH"] = f"{user_bin}{os.pathsep}{os.environ['PATH']}"
+
+
+def _run_az(cmd):
+    _ensure_path()
+    return subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+
+def _sync_branch(branch):
+    result = run(["git", "branch", "--list", branch])
+    if result.returncode != 0 or not result.stdout.strip():
+        return
+
+    run(["git", "fetch", "origin", f"{branch}:{branch}"])
+    run(["git", "push", "origin", branch])
+
+
+def cmd_pr_publish(args):
+    pr_id = args.pr_id
+
+    result = _run_az(f"az repos pr show --id {pr_id} --output json")
+    if result.returncode != 0:
+        print(f"az command failed: {result.stderr}", file=sys.stderr)
+        return 1
+
+    try:
+        pr = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print("Failed to parse az output as JSON.", file=sys.stderr)
+        return 1
+
+    title = pr.get("title", "")
+    description = pr.get("description") or ""
+    is_draft = pr.get("isDraft", False)
+    branch = pr.get("sourceRefName", "").removeprefix("refs/heads/")
+
+    if branch:
+        print(f"Syncing branch: {branch}", file=sys.stderr)
+        _sync_branch(branch)
+
+    original = (title, description)
+
+    fd, temp_path = tempfile.mkstemp(suffix=".md")
+    with os.fdopen(fd, "w") as f:
+        f.write(f"{title}\n")
+        if description:
+            f.write(f"{description}\n")
+
+    subprocess.run(["nvim", temp_path])
+
+    with open(temp_path, "r") as f:
+        content = f.read().strip()
+    os.unlink(temp_path)
+
+    if not content:
+        print("No content saved, aborting.", file=sys.stderr)
+        return 1
+
+    lines = content.split("\n", 1)
+    new_title = lines[0].strip()
+    new_description = lines[1].strip() if len(lines) > 1 else ""
+
+    changed = (new_title, new_description) != original
+
+    update_cmd = f"az repos pr update --id {pr_id}"
+    if changed:
+        update_cmd += f" --title {shlex.quote(new_title)}"
+        if new_description:
+            update_cmd += f" --description {shlex.quote(new_description)}"
+    if is_draft:
+        update_cmd += " --draft false"
+
+    if not changed and not is_draft:
+        print("No changes and PR is already published.", file=sys.stderr)
+        return 0
+
+    result = _run_az(update_cmd)
+    if result.returncode != 0:
+        print(f"Failed to update PR: {result.stderr}", file=sys.stderr)
+        return 1
+
+    print(f"PR {pr_id} updated.", file=sys.stderr)
+    return 0
+
+
 def cmd_pr_list(args):
     creator = _get_git_email()
     if creator is None:
@@ -41,19 +132,8 @@ def cmd_pr_list(args):
 
     email_local = creator.split("@")[0] if "@" in creator else None
 
-    paths = os.environ.get("PATH", "").split(os.pathsep)
-    user_bin = os.path.expanduser("~/.local/bin")
-    if user_bin not in paths:
-        os.environ["PATH"] = f"{user_bin}{os.pathsep}{os.environ['PATH']}"
-
     cmd = f"az repos pr list --creator {shlex.quote(creator)} --status active --output json"
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        shell=True,
-    )
-
+    result = _run_az(cmd)
     if result.returncode != 0:
         print(f"az command failed: {result.stderr}", file=sys.stderr)
         return 1
@@ -80,27 +160,42 @@ def cmd_pr_list(args):
         reviewers = pr.get("reviewers") or []
 
         required = [r for r in reviewers if r.get("isRequired")]
-        total = len(required)
         approved = sum(1 for r in required if r.get("vote", 0) >= 5)
-        waiting = sum(1 for r in required if r.get("vote") == -5)
+        blocked = sum(1 for r in required if r.get("vote") == -5)
+        novote = sum(1 for r in required if r.get("vote", 0) == 0)
 
         if len(title) > TITLE_MAX:
             title = title[: TITLE_MAX - 1] + "\u2026"
 
         line = Text()
         line.append(f"  {pr_id:>{id_width}}  ")
-        line.append(f"{approved}a", style="green" if approved else "grey15")
-        line.append("/", style="grey15")
-        line.append(f"{waiting}w", style="yellow" if waiting else "grey15")
-        line.append("/", style="grey15")
-        line.append(str(total), style="grey15" if total == 0 else "")
-        line.append("  ")
         if pr.get("isDraft"):
             line.append("(draft) ", style="yellow")
         line.append(f"{title} ")
         line.append(f"({branch})", style="blue")
-        if pr.get("autoCompleteSetBy"):
+
+        if not pr.get("isDraft"):
+            if blocked:
+                suffix = f"(blocked: {blocked}"
+                color = "red"
+            elif novote:
+                suffix = f"(waiting: {novote}"
+                color = "yellow"
+            elif approved == len(required) and len(required) > 0:
+                suffix = "(ready"
+                color = "green"
+            else:
+                suffix = None
+
+            if suffix is not None:
+                if pr.get("autoCompleteSetBy"):
+                    suffix += ", ac"
+                suffix += ")"
+                line.append(" ", style=color)
+                line.append(suffix, style=color)
+        elif pr.get("autoCompleteSetBy"):
             line.append(" (ac)", style="green")
+
         console.print(line)
 
     return 0

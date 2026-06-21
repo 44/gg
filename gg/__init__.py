@@ -262,6 +262,16 @@ def main():
     )
     pr_list.set_defaults(func=cmd_pr)
 
+    pr_publish = pr_sub.add_parser(
+        "publish",
+        help="Publish a pull request",
+        description="Fetches PR info, syncs local branch, opens editor to update title/description, "
+        "and publishes the PR if it was in draft state.",
+        parents=[common],
+    )
+    pr_publish.add_argument("pr_id", type=int, help="Pull request ID")
+    pr_publish.set_defaults(func=cmd_pr)
+
     args = parser.parse_args()
     sys.exit(args.func(args))
 
