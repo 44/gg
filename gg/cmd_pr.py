@@ -82,25 +82,35 @@ def cmd_pr_publish(args):
 
     original = (title, description)
 
-    fd, temp_path = tempfile.mkstemp(suffix=".md")
-    with os.fdopen(fd, "w") as f:
-        f.write(f"{title}\n")
-        if description:
-            f.write(f"{description}\n")
+    if args.file:
+        with open(args.file, "r") as f:
+            content = f.read().strip()
+        if not content:
+            print("File is empty.", file=sys.stderr)
+            return 1
+        lines = content.split("\n", 1)
+        new_title = lines[0].strip()
+        new_description = lines[1].strip() if len(lines) > 1 else ""
+    else:
+        fd, temp_path = tempfile.mkstemp(suffix=".md")
+        with os.fdopen(fd, "w") as f:
+            f.write(f"{title}\n")
+            if description:
+                f.write(f"{description}\n")
 
-    subprocess.run(["nvim", temp_path])
+        subprocess.run(["nvim", temp_path])
 
-    with open(temp_path, "r") as f:
-        content = f.read().strip()
-    os.unlink(temp_path)
+        with open(temp_path, "r") as f:
+            content = f.read().strip()
+        os.unlink(temp_path)
 
-    if not content:
-        print("No content saved, aborting.", file=sys.stderr)
-        return 1
+        if not content:
+            print("No content saved, aborting.", file=sys.stderr)
+            return 1
 
-    lines = content.split("\n", 1)
-    new_title = lines[0].strip()
-    new_description = lines[1].strip() if len(lines) > 1 else ""
+        lines = content.split("\n", 1)
+        new_title = lines[0].strip()
+        new_description = lines[1].strip() if len(lines) > 1 else ""
 
     changed = (new_title, new_description) != original
 

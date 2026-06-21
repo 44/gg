@@ -273,10 +273,14 @@ def main():
         "publish",
         help="Publish a pull request",
         description="Fetches PR info, syncs local branch, opens editor to update title/description, "
-        "and publishes the PR if it was in draft state.",
+        "and publishes the PR if it was in draft state. If a file path is provided, reads title "
+        "and description from the file instead of opening an editor.",
         parents=[common],
     )
     pr_publish.add_argument("pr_id", type=int, help="Pull request ID")
+    pr_publish.add_argument(
+        "file", nargs="?", help="Path to file with title (first line) and description (rest)"
+    )
     pr_publish.set_defaults(func=cmd_pr)
 
     args = parser.parse_args()
