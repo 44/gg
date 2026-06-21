@@ -181,30 +181,40 @@ def cmd_pr_list(args):
         line.append(f"  {pr_id:>{id_width}}  ")
         if pr.get("isDraft"):
             line.append("(draft) ", style="yellow")
+        if pr.get("autoCompleteSetBy"):
+            line.append("(auto) ", style="green")
         line.append(f"{title} ")
         line.append(f"({branch})", style="blue")
 
         if not pr.get("isDraft"):
+            has_conflicts = pr.get("mergeStatus") == "conflicts"
+            reasons = []
+            if has_conflicts:
+                reasons.append("conflict")
             if blocked:
-                suffix = f"(blocked: {blocked}"
+                reasons.append(str(blocked))
+
+            if reasons:
+                parts = []
+                for r in reasons:
+                    if r == "conflict":
+                        parts.append("conflict")
+                    else:
+                        parts.append("votes")
+                suffix = f"(blocked: {', '.join(parts)})"
                 color = "red"
             elif novote:
-                suffix = f"(waiting: {novote}"
+                suffix = f"(waiting: {novote} votes)"
                 color = "yellow"
             elif approved == len(required) and len(required) > 0:
-                suffix = "(ready"
+                suffix = "(ready)"
                 color = "green"
             else:
                 suffix = None
 
             if suffix is not None:
-                if pr.get("autoCompleteSetBy"):
-                    suffix += ", ac"
-                suffix += ")"
                 line.append(" ", style=color)
                 line.append(suffix, style=color)
-        elif pr.get("autoCompleteSetBy"):
-            line.append(" (ac)", style="green")
 
         console.print(line)
 
