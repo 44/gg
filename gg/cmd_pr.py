@@ -4,7 +4,12 @@ import shlex
 import subprocess
 import sys
 
+from rich.console import Console
+from rich.text import Text
+
 from .utils import run
+
+console = Console()
 
 
 def cmd_pr(args):
@@ -18,11 +23,11 @@ def cmd_pr(args):
     return 1
 
 
-def _get_git_user():
-    result = run(["git", "config", "user.name"])
+def _get_git_email():
+    result = run(["git", "config", "user.email"])
     if result.returncode != 0:
         print(
-            "Failed to get git user name. Ensure git config user.name is set.",
+            "Failed to get git user email. Ensure git config user.email is set.",
             file=sys.stderr,
         )
         return None
@@ -30,9 +35,11 @@ def _get_git_user():
 
 
 def cmd_pr_list(args):
-    creator = _get_git_user()
+    creator = _get_git_email()
     if creator is None:
         return 1
+
+    email_local = creator.split("@")[0] if "@" in creator else None
 
     paths = os.environ.get("PATH", "").split(os.pathsep)
     user_bin = os.path.expanduser("~/.local/bin")
@@ -60,10 +67,40 @@ def cmd_pr_list(args):
     if not prs:
         return 0
 
+    id_width = max(len(str(pr["pullRequestId"])) for pr in prs)
+
+    TITLE_MAX = 60
+
     for pr in prs:
         pr_id = pr["pullRequestId"]
-        draft = "[DRAFT]" if pr.get("isDraft", False) else "      "
         title = pr["title"]
-        print(f"{pr_id:>6} {draft} {title}")
+        branch = pr.get("sourceRefName", "").removeprefix("refs/heads/")
+        if email_local and branch.startswith(f"user/{email_local}/"):
+            branch = branch.removeprefix(f"user/{email_local}/")
+        reviewers = pr.get("reviewers") or []
+
+        required = [r for r in reviewers if r.get("isRequired")]
+        total = len(required)
+        approved = sum(1 for r in required if r.get("vote", 0) >= 5)
+        waiting = sum(1 for r in required if r.get("vote") == -5)
+
+        if len(title) > TITLE_MAX:
+            title = title[: TITLE_MAX - 1] + "\u2026"
+
+        line = Text()
+        line.append(f"  {pr_id:>{id_width}}  ")
+        line.append(f"{approved}a", style="green" if approved else "grey15")
+        line.append("/", style="grey15")
+        line.append(f"{waiting}w", style="yellow" if waiting else "grey15")
+        line.append("/", style="grey15")
+        line.append(str(total), style="grey15" if total == 0 else "")
+        line.append("  ")
+        if pr.get("isDraft"):
+            line.append("(draft) ", style="yellow")
+        line.append(f"{title} ")
+        line.append(f"({branch})", style="blue")
+        if pr.get("autoCompleteSetBy"):
+            line.append(" (ac)", style="green")
+        console.print(line)
 
     return 0
