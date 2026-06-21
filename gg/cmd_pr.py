@@ -108,7 +108,8 @@ def cmd_pr_publish(args):
     if changed:
         update_cmd += f" --title {shlex.quote(new_title)}"
         if new_description:
-            update_cmd += f" --description {shlex.quote(new_description)}"
+            desc_lines = " ".join(shlex.quote(line) for line in new_description.split("\n"))
+            update_cmd += f" --description {desc_lines}"
     if is_draft:
         update_cmd += " --draft false"
 
