@@ -35,17 +35,10 @@ def cmd_install(args):
         print(f"Installing gg command wrappers to {bin_dir}", file=sys.stderr)
 
     os.makedirs(bin_dir, exist_ok=True)
-    is_windows = platform.system() == "Windows"
 
     for cmd in COMMANDS:
-        if is_windows:
-            script_path = os.path.join(bin_dir, f"git-{cmd}.cmd")
-            script_content = f"""@echo off
-uvx --offline gg {cmd} %*
-"""
-        else:
-            script_path = os.path.join(bin_dir, f"git-{cmd}")
-            script_content = f"""#!/bin/sh
+        script_path = os.path.join(bin_dir, f"git-{cmd}")
+        script_content = f"""#!/bin/sh
 exec uvx --offline gg {cmd} "$@"
 """
 
@@ -53,9 +46,8 @@ exec uvx --offline gg {cmd} "$@"
             with open(script_path, "w") as f:
                 f.write(script_content)
 
-            if not is_windows:
-                st = os.stat(script_path)
-                os.chmod(script_path, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+            st = os.stat(script_path)
+            os.chmod(script_path, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
             if not quiet:
                 print(f"Installed: {script_path}", file=sys.stderr)
