@@ -11,7 +11,7 @@ COMMANDS = ["fff", "mb", "ms", "party", "pff", "wc", "rb", "cleanup"]
 
 def _get_bin_dir():
     if platform.system() == "Windows":
-        return os.path.join(os.environ.get("USERPROFILE", ""), "bin")
+        return os.path.join(os.environ.get("USERPROFILE", ""), ".local", "bin")
     return os.path.join(os.path.expanduser("~"), ".local", "bin")
 
 
