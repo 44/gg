@@ -58,7 +58,7 @@ def main():
         description="Installs gg via 'uv tool install' from GitHub, then creates executable "
         "wrapper scripts for gg commands (fff, mb, ms, party, pff, wc, rb, cleanup) in "
         "~/.local/bin (Linux) or %%USERPROFILE%%\\bin (Windows). "
-        "Wrappers use 'uvx --offline' to run the locally installed tool. Overwrites existing scripts.",
+        "Wrappers call 'gg <cmd>' directly. Overwrites existing scripts.",
         parents=[common],
     )
     install_parser.set_defaults(func=cmd_install)

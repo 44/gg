@@ -39,7 +39,7 @@ def cmd_install(args):
     for cmd in COMMANDS:
         script_path = os.path.join(bin_dir, f"git-{cmd}")
         script_content = f"""#!/bin/sh
-exec uvx --offline gg {cmd} "$@"
+exec gg {cmd} "$@"
 """
 
         try:
