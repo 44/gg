@@ -104,20 +104,29 @@ def cmd_pr_publish(args):
 
     changed = (new_title, new_description) != original
 
-    update_cmd = f"az repos pr update --id {pr_id}"
-    if changed:
-        update_cmd += f" --title {shlex.quote(new_title)}"
-        if new_description:
-            desc_lines = " ".join(shlex.quote(line) for line in new_description.split("\n"))
-            update_cmd += f" --description {desc_lines}"
-    if is_draft:
-        update_cmd += " --draft false"
-
     if not changed and not is_draft:
         print("No changes and PR is already published.", file=sys.stderr)
         return 0
 
-    result = _run_az(update_cmd)
+    body = {}
+    if changed:
+        body["title"] = new_title
+        body["description"] = new_description
+    if is_draft:
+        body["isDraft"] = False
+
+    fd, body_path = tempfile.mkstemp(suffix=".json")
+    with os.fdopen(fd, "w") as f:
+        json.dump(body, f)
+
+    api_url = pr["url"]
+    if "api-version" not in api_url:
+        api_url += "?api-version=7.1"
+
+    cmd = f"az rest --method PATCH --url {shlex.quote(api_url)} --body @{shlex.quote(body_path)} --headers Content-Type=application/json --resource https://app.vssps.visualstudio.com"
+    result = _run_az(cmd)
+    os.unlink(body_path)
+
     if result.returncode != 0:
         print(f"Failed to update PR: {result.stderr}", file=sys.stderr)
         return 1
