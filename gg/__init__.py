@@ -257,8 +257,15 @@ def main():
     pr_list = pr_sub.add_parser(
         "list",
         help="List active pull requests",
-        description="Lists active Azure DevOps pull requests filtered by the current git user.",
+        description="Lists active Azure DevOps pull requests. By default filtered by the current "
+        "git user as creator. Use --review to show PRs awaiting your review, or --all for all active PRs.",
         parents=[common],
+    )
+    pr_list.add_argument(
+        "--review", action="store_true", help="Show PRs where you are a reviewer"
+    )
+    pr_list.add_argument(
+        "--all", action="store_true", dest="all_prs", help="Show all active PRs"
     )
     pr_list.set_defaults(func=cmd_pr)
 

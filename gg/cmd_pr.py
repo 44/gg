@@ -136,13 +136,22 @@ def cmd_pr_publish(args):
 
 
 def cmd_pr_list(args):
-    creator = _get_git_email()
-    if creator is None:
-        return 1
+    if args.review or not args.all_prs:
+        email = _get_git_email()
+        if email is None:
+            return 1
+        email_local = email.split("@")[0] if "@" in email else None
+    else:
+        email = None
+        email_local = None
 
-    email_local = creator.split("@")[0] if "@" in creator else None
+    if args.review:
+        cmd = f"az repos pr list --reviewer {shlex.quote(email)} --status active --output json"
+    elif args.all_prs:
+        cmd = "az repos pr list --status active --output json"
+    else:
+        cmd = f"az repos pr list --creator {shlex.quote(email)} --status active --output json"
 
-    cmd = f"az repos pr list --creator {shlex.quote(creator)} --status active --output json"
     result = _run_az(cmd)
     if result.returncode != 0:
         print(f"az command failed: {result.stderr}", file=sys.stderr)
