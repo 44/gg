@@ -18,6 +18,8 @@ def cmd_pr(args):
     commands = {
         "list": cmd_pr_list,
         "publish": cmd_pr_publish,
+        "cache": cmd_pr_cache,
+        "show": cmd_pr_show,
     }
     if command in commands:
         return commands[command](args)
@@ -45,7 +47,7 @@ def _ensure_path():
 
 def _run_az(cmd):
     _ensure_path()
-    return subprocess.run(cmd, capture_output=True, text=True, shell=True)
+    return subprocess.run(cmd, capture_output=True, text=True, errors="replace", shell=True)
 
 
 def _sync_branch(branch):
@@ -142,6 +144,173 @@ def cmd_pr_publish(args):
         return 1
 
     print(f"PR {pr_id} updated.", file=sys.stderr)
+    return 0
+
+
+def _fetch_prs(cmd):
+    result = _run_az(cmd)
+    if result.returncode != 0:
+        return []
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return []
+
+
+def cmd_pr_cache(args):
+    cache_dir = os.path.join(os.path.expanduser("~"), ".local", "cache", "gg")
+    RESOURCE = "https://app.vssps.visualstudio.com"
+
+    email = _get_git_email()
+    if email is None:
+        return 1
+
+    queries = [
+        f"az repos pr list --creator {shlex.quote(email)} --status all --output json",
+        f"az repos pr list --reviewer {shlex.quote(email)} --status all --output json",
+        "az repos pr list --status all --output json",
+    ]
+
+    seen = set()
+    prs = []
+    for q in queries:
+        for pr in _fetch_prs(q):
+            pr_id = pr["pullRequestId"]
+            if pr_id not in seen:
+                seen.add(pr_id)
+                prs.append(pr)
+
+    for pr in prs:
+        pr_id = pr["pullRequestId"]
+        status = pr.get("status")
+        pr_cache_dir = os.path.join(cache_dir, f"pr-{pr_id}")
+
+        if status == "active":
+            os.makedirs(pr_cache_dir, exist_ok=True)
+
+            thread_url = pr["url"] + "/threads?api-version=7.1"
+            thread_result = _run_az(
+                f"az rest --url {shlex.quote(thread_url)} --resource {RESOURCE} --output json"
+            )
+
+            thread_active = 0
+            thread_total = 0
+            if thread_result.returncode == 0:
+                with open(os.path.join(pr_cache_dir, "threads.json"), "w") as f:
+                    f.write(thread_result.stdout)
+                try:
+                    thread_data = json.loads(thread_result.stdout)
+                    threads = thread_data.get("value", thread_data if isinstance(thread_data, list) else [])
+                    thread_total = len(threads)
+                    thread_active = sum(1 for t in threads if t.get("status") == "active")
+                except json.JSONDecodeError:
+                    pass
+
+            policy_approved = 0
+            policy_running = 0
+            policy_total = 0
+            policy_result = _run_az(f"az repos pr policy list --id {pr_id} --output json")
+            if policy_result.returncode == 0:
+                with open(os.path.join(pr_cache_dir, "policies.json"), "w") as f:
+                    f.write(policy_result.stdout)
+                try:
+                    policies = json.loads(policy_result.stdout)
+                    if isinstance(policies, list):
+                        policy_running = sum(1 for p in policies if p.get("status") in ("running", "queued"))
+                        policy_approved = sum(1 for p in policies if p.get("status") == "approved")
+                        policy_total = len(policies)
+                except json.JSONDecodeError:
+                    pass
+
+            print(f"PR {pr_id}: {thread_active}/{thread_total} threads, {policy_approved}/{policy_running}/{policy_total} policies", file=sys.stderr)
+        else:
+            if os.path.isdir(pr_cache_dir):
+                import shutil
+                shutil.rmtree(pr_cache_dir)
+                print(f"PR {pr_id}: cleaned up", file=sys.stderr)
+
+    return 0
+
+
+def cmd_pr_show(args):
+    pr_id = args.pr_id
+    cache_dir = os.path.join(os.path.expanduser("~"), ".local", "cache", "gg", f"pr-{pr_id}")
+
+    result = _run_az(f"az repos pr show --id {pr_id} --output json")
+    if result.returncode != 0:
+        print(f"az command failed: {result.stderr}", file=sys.stderr)
+        return 1
+
+    try:
+        pr = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print("Failed to parse PR info.", file=sys.stderr)
+        return 1
+
+    pr_id = pr["pullRequestId"]
+    title = pr.get("title", "")
+    branch = pr.get("sourceRefName", "").removeprefix("refs/heads/")
+    creator = pr.get("createdBy", {}).get("uniqueName", "")
+    reviewers = pr.get("reviewers") or []
+
+    VOTE_LABELS = {10: "approved", 5: "approved w/suggestions", 0: "no vote", -5: "waiting for author", -10: "rejected"}
+
+    console.print(f"[bold]PR {pr_id}:[/bold] {title}")
+    console.print(f"  [dim]Branch:[/dim]  {branch}")
+    console.print(f"  [dim]Creator:[/dim] {creator}")
+
+    required = [r for r in reviewers if r.get("isRequired")]
+    if required:
+        console.print(f"  [bold]Reviewers:[/bold]")
+        for r in required:
+            vote = r.get("vote", 0)
+            label = VOTE_LABELS.get(vote, str(vote))
+            console.print(f"    {r.get('uniqueName', '')}  {label}")
+
+    threads = []
+    threads_path = os.path.join(cache_dir, "threads.json")
+    if os.path.isfile(threads_path):
+        try:
+            with open(threads_path) as f:
+                data = json.load(f)
+            threads = data.get("value", data if isinstance(data, list) else [])
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    active_threads = [t for t in threads if t.get("status") == "active"]
+    if active_threads:
+        console.print(f"  [bold]Active threads:[/bold]")
+        for t in active_threads:
+            comments = t.get("comments") or []
+            first = comments[0] if comments else {}
+            author = first.get("author", {}).get("uniqueName", "")
+            content = first.get("content", "")
+            first_line = content.split("\n")[0].strip()[:80] if content else ""
+            console.print(f"    {author}  {first_line}")
+
+    policies = []
+    policies_path = os.path.join(cache_dir, "policies.json")
+    if os.path.isfile(policies_path):
+        try:
+            with open(policies_path) as f:
+                policies = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    if isinstance(policies, list) and policies:
+        required = [p for p in policies if p.get("configuration", {}).get("isBlocking")]
+        if required:
+            console.print(f"  [bold]Required policies:[/bold]")
+            for p in required:
+                cfg = p.get("configuration", {})
+                settings = cfg.get("settings", {})
+                name = (settings.get("displayName")
+                        or settings.get("statusName")
+                        or cfg.get("displayName")
+                        or cfg.get("type", {}).get("displayName", ""))
+                status = p.get("status", "")
+                console.print(f"    {name}  {status}")
+
     return 0
 
 

@@ -283,6 +283,24 @@ def main():
     )
     pr_publish.set_defaults(func=cmd_pr)
 
+    pr_cache = pr_sub.add_parser(
+        "cache",
+        help="Cache PR threads and policy states",
+        description="Fetches comment threads and policy evaluations for all PRs and caches them "
+        "in ~/.local/cache/gg/. Cleans up cache for completed and abandoned PRs.",
+        parents=[common],
+    )
+    pr_cache.set_defaults(func=cmd_pr)
+
+    pr_show = pr_sub.add_parser(
+        "show",
+        help="Show PR details with threads and policies",
+        description="Displays PR info enriched with cached threads and policy data.",
+        parents=[common],
+    )
+    pr_show.add_argument("pr_id", type=int, help="Pull request ID")
+    pr_show.set_defaults(func=cmd_pr)
+
     args = parser.parse_args()
     sys.exit(args.func(args))
 
