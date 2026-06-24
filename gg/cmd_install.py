@@ -6,7 +6,7 @@ import sys
 
 REPO_URL = "git+https://github.com/44/gg"
 
-COMMANDS = ["fff", "mb", "ms", "party", "pff", "wc", "rb", "cleanup"]
+COMMANDS = ["fff", "mb", "ms", "party", "pff", "wc", "rb", "cleanup", "pr"]
 
 
 def _get_bin_dir():
