@@ -255,17 +255,42 @@ def cmd_pr_show(args):
 
     VOTE_LABELS = {10: "approved", 5: "approved w/suggestions", 0: "no vote", -5: "waiting for author", -10: "rejected"}
 
+    description = pr.get("description") or ""
+
     console.print(f"[bold]PR {pr_id}:[/bold] {title}")
     console.print(f"  [dim]Branch:[/dim]  {branch}")
     console.print(f"  [dim]Creator:[/dim] {creator}")
+    if description:
+        console.print(f"  [dim]Description:[/dim]")
+        for line in description.split("\n"):
+            console.print(f"    {line}")
+
+    VOTE_COLORS = {10: "green", 5: "green", 0: "grey62", -5: "yellow", -10: "red"}
 
     required = [r for r in reviewers if r.get("isRequired")]
-    if required:
-        console.print(f"  [bold]Reviewers:[/bold]")
-        for r in required:
+    optional = [r for r in reviewers if not r.get("isRequired")]
+
+    def add_reviewers_line(rs, label):
+        line = Text("  ")
+        line.append(label, style="bold")
+        line.append(": ")
+        for i, r in enumerate(rs):
+            if i > 0:
+                line.append("  ")
+            name = r.get("uniqueName", "")
+            if "\\" in name:
+                name = name.split("\\", 1)[1]
             vote = r.get("vote", 0)
-            label = VOTE_LABELS.get(vote, str(vote))
-            console.print(f"    {r.get('uniqueName', '')}  {label}")
+            lbl = VOTE_LABELS.get(vote, str(vote))
+            color = VOTE_COLORS.get(vote, "")
+            line.append(name)
+            line.append(f" [{lbl}]", style=color)
+        console.print(line)
+
+    if required:
+        add_reviewers_line(required, "Required reviewers")
+    if optional:
+        add_reviewers_line(optional, "Optional reviewers")
 
     threads = []
     threads_path = os.path.join(cache_dir, "threads.json")
