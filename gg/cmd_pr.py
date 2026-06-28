@@ -292,6 +292,8 @@ def cmd_pr_show(args):
     if optional:
         add_reviewers_line(optional, "Optional reviewers")
 
+    RESOURCE = "https://app.vssps.visualstudio.com"
+
     threads = []
     threads_path = os.path.join(cache_dir, "threads.json")
     if os.path.isfile(threads_path):
@@ -301,17 +303,28 @@ def cmd_pr_show(args):
             threads = data.get("value", data if isinstance(data, list) else [])
         except (json.JSONDecodeError, OSError):
             pass
+    else:
+        thread_url = pr.get("url", "") + "/threads?api-version=7.1"
+        if thread_url:
+            result = _run_az(f"az rest --url {shlex.quote(thread_url)} --resource {RESOURCE} --output json")
+            if result.returncode == 0:
+                try:
+                    data = json.loads(result.stdout)
+                    threads = data.get("value", data if isinstance(data, list) else [])
+                except json.JSONDecodeError:
+                    pass
 
     active_threads = [t for t in threads if t.get("status") == "active"]
     if active_threads:
         console.print(f"  [bold]Active threads:[/bold]")
         for t in active_threads:
+            tid = t.get("id", "")
             comments = t.get("comments") or []
             first = comments[0] if comments else {}
             author = first.get("author", {}).get("uniqueName", "")
             content = first.get("content", "")
-            first_line = content.split("\n")[0].strip()[:80] if content else ""
-            console.print(f"    {author}  {first_line}")
+            first_line = next((l.strip() for l in content.split("\n") if l.strip() and not l.strip().startswith("[comment]:")), "")[:80] if content else ""
+            console.print(f"    #{tid} {author}  {first_line}")
 
     policies = []
     policies_path = os.path.join(cache_dir, "policies.json")
@@ -321,20 +334,34 @@ def cmd_pr_show(args):
                 policies = json.load(f)
         except (json.JSONDecodeError, OSError):
             pass
+    else:
+        result = _run_az(f"az repos pr policy list --id {pr_id} --output json")
+        if result.returncode == 0:
+            try:
+                policies = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                pass
+
+    POLICY_COLORS = {"approved": "green", "rejected": "red", "running": "yellow", "queued": "yellow", "broken": "red", "notApplicable": "grey62"}
 
     if isinstance(policies, list) and policies:
         required = [p for p in policies if p.get("configuration", {}).get("isBlocking")]
         if required:
             console.print(f"  [bold]Required policies:[/bold]")
             for p in required:
+                pid = p.get("configuration", {}).get("id", "")
                 cfg = p.get("configuration", {})
                 settings = cfg.get("settings", {})
                 name = (settings.get("displayName")
+                        or settings.get("defaultDisplayName")
                         or settings.get("statusName")
                         or cfg.get("displayName")
                         or cfg.get("type", {}).get("displayName", ""))
                 status = p.get("status", "")
-                console.print(f"    {name}  {status}")
+                color = POLICY_COLORS.get(status, "")
+                line = Text(f"    #{pid} {name}  ")
+                line.append(status, style=color)
+                console.print(line)
 
     return 0
 
