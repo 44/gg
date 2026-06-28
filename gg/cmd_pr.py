@@ -261,7 +261,7 @@ def cmd_pr_show(args):
     console.print(f"  [dim]Branch:[/dim]  {branch}")
     console.print(f"  [dim]Creator:[/dim] {creator}")
     if description:
-        console.print(f"  [dim]Description:[/dim]")
+        console.print("  [dim]Description:[/dim]")
         for line in description.split("\n"):
             console.print(f"    {line}")
 
@@ -316,14 +316,14 @@ def cmd_pr_show(args):
 
     active_threads = [t for t in threads if t.get("status") == "active"]
     if active_threads:
-        console.print(f"  [bold]Active threads:[/bold]")
+        console.print("  [bold]Active threads:[/bold]")
         for t in active_threads:
             tid = t.get("id", "")
             comments = t.get("comments") or []
             first = comments[0] if comments else {}
             author = first.get("author", {}).get("uniqueName", "")
             content = first.get("content", "")
-            first_line = next((l.strip() for l in content.split("\n") if l.strip() and not l.strip().startswith("[comment]:")), "")[:80] if content else ""
+            first_line = next((line.strip() for line in content.split("\n") if line.strip() and not line.strip().startswith("[comment]:")), "")[:80] if content else ""
             console.print(f"    #{tid} {author}  {first_line}")
 
     policies = []
@@ -347,7 +347,7 @@ def cmd_pr_show(args):
     if isinstance(policies, list) and policies:
         required = [p for p in policies if p.get("configuration", {}).get("isBlocking")]
         if required:
-            console.print(f"  [bold]Required policies:[/bold]")
+            console.print("  [bold]Required policies:[/bold]")
             for p in required:
                 pid = p.get("configuration", {}).get("id", "")
                 cfg = p.get("configuration", {})
@@ -362,6 +362,15 @@ def cmd_pr_show(args):
                 line = Text(f"    #{pid} {name}  ")
                 line.append(status, style=color)
                 console.print(line)
+                if status == "rejected":
+                    ctx = p.get("context") or {}
+                    preview = ctx.get("buildOutputPreview") or {}
+                    errors = preview.get("errors") if isinstance(preview, dict) else None
+                    if errors and isinstance(errors, list):
+                        for err in errors:
+                            msg = err.get("message", "") if isinstance(err, dict) else str(err)
+                            if msg:
+                                console.print(f"      [red]{msg}[/red]")
 
     return 0
 
