@@ -133,6 +133,15 @@ assert 'open_current_item' in lua
 assert 'open_thread_by_id' in lua
 assert 'open_thread_at_cursor' in lua
 assert 'set_current_thread_status' in lua
+assert 'goto_section' in lua
+assert \"vim.api.nvim_buf_set_keymap(0, 'n', 'gr'\" in lua
+assert \"goto_section('reviewers')\" in lua
+assert \"vim.api.nvim_buf_set_keymap(0, 'n', 'gt'\" in lua
+assert \"goto_section('threads')\" in lua
+assert \"vim.api.nvim_buf_set_keymap(0, 'n', 'gc'\" in lua
+assert \"goto_section('changes')\" in lua
+assert \"vim.api.nvim_buf_set_keymap(0, 'n', 'gp'\" in lua
+assert \"goto_section('policies')\" in lua
 assert 'load_threads(false)' in lua
 assert 'create_new_thread' in lua
 assert 'add_current_item' in lua

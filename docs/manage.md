@@ -94,6 +94,17 @@ Pressing `A` anywhere opens `vim.ui.select()` with PR-wide actions:
 
 Staged status and vote changes are local until `pp` publishes them.
 
+### `gr` / `gt` / `gc` / `gp` — Navigate Sections
+
+These mappings jump to top-level management buffer sections:
+
+| Key | Section |
+|-----|---------|
+| `gr` | `# Reviewers` |
+| `gt` | `# Threads` |
+| `gc` | `# Changes` |
+| `gp` | `# Policies` |
+
 ### `o` — Open Context
 
 Pressing `o` in the content section (title/description/reviewers) calls
