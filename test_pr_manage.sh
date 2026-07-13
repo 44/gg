@@ -153,6 +153,8 @@ assert \"vim.api.nvim_buf_set_keymap(0, 'n', 'cw'\" in lua
 assert \"set_current_thread_status('wontFix')\" in lua
 assert \"set_current_thread_status('closed')\" in lua
 assert 'load_threads' in lua
+assert \"table.insert(cmd, '--drop-new-drafts')\" in lua
+assert 'sync_view = function(load_sections)' in lua
 assert '_manage-threads' in lua
 assert '_manage-thread-open' in lua
 assert 'open_current_thread' in lua
@@ -560,6 +562,11 @@ from gg.cmd_pr import cmd_pr_manage_threads, _format_manage_content
 
 class Args:
     pr_id = 200
+    drop_new_drafts = False
+
+class DropArgs:
+    pr_id = 200
+    drop_new_drafts = True
 
 class Result:
     returncode = 0
@@ -638,6 +645,12 @@ pr = {
 with open(os.path.join('$THREAD_CACHE_DIR', 'pr.json'), 'w') as f:
     json.dump(pr, f)
 
+drafts_dir = os.path.join('$THREAD_CACHE_DIR', 'threads')
+os.makedirs(drafts_dir, exist_ok=True)
+new_draft_path = os.path.join(drafts_dir, 'new-preserve.md')
+with open(new_draft_path, 'w') as f:
+    f.write('---\\nstatus: active\\n---\\n\\n<!-- gg-new-thread-comment-start -->\\nDraft comment\\n')
+
 import io
 sys.stdout = io.StringIO()
 with patch('gg.cmd_pr._get_cache_dir', return_value='$THREAD_CACHE_DIR'), patch('gg.cmd_pr._run_az', return_value=Result()):
@@ -649,6 +662,8 @@ data = json.loads(out)
 print(f'manage-threads result: {data}')
 assert r == 0
 assert data['status'] == 'ok'
+assert data['dropped_new_thread_drafts'] == 0
+assert os.path.exists(new_draft_path)
 assert data['total_threads'] == 4
 assert [t['id'] for t in data['threads']] == [11, 12, 13, 14]
 assert data['threads'][0]['file_path'] == '/src/a.py'
@@ -675,6 +690,17 @@ assert '- [14] (**active**) by system /src/b.py:42 2026-06-28 10:11' in content,
 assert 'It might be better to keep this g...' in content
 assert '- [12] (**active**) by system' in content
 assert '[15]' not in content
+
+sys.stdout = io.StringIO()
+with patch('gg.cmd_pr._get_cache_dir', return_value='$THREAD_CACHE_DIR'), patch('gg.cmd_pr._run_az', return_value=Result()):
+    r = cmd_pr_manage_threads(DropArgs())
+out = sys.stdout.getvalue()
+sys.stdout = sys.__stdout__
+drop_data = json.loads(out)
+assert r == 0
+assert drop_data['status'] == 'ok'
+assert drop_data['dropped_new_thread_drafts'] == 1
+assert not os.path.exists(new_draft_path)
 print('PASS: _manage-threads filters and formats threads')
 "
 

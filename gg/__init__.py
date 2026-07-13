@@ -435,6 +435,11 @@ def main():
         parents=[common],
     )
     pr_manage_threads.add_argument("pr_id", type=int, help="Pull request ID")
+    pr_manage_threads.add_argument(
+        "--drop-new-drafts",
+        action="store_true",
+        help="Drop unpublished new thread drafts before reloading threads",
+    )
     pr_manage_threads.set_defaults(func=cmd_pr)
 
     pr_manage_thread_open = pr_sub.add_parser(

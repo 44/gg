@@ -106,7 +106,7 @@ Pressing `r` reloads content based on cursor position:
 | Cursor in | Behavior |
 |-----------|----------|
 | `# Changes` section | Asynchronously refetches branches and regenerates `# Changes` only |
-| `# Threads` section | Asynchronously refetches `# Threads` only |
+| `# Threads` section | Asynchronously refetches `# Threads` only and drops unpublished new thread drafts |
 | `# Policies` section | Asynchronously refetches `# Policies` only |
 | Anywhere else | Asynchronously reloads PR details and drops pending summary/status edits; threads, changes, and policies follow normal cached/background load behavior |
 
@@ -294,6 +294,7 @@ by `pp`.
 - Thread fetching runs in the background via `_manage-threads`
 - On completion, `threads.json` is written, the buffer is updated, and the loading marker is removed
 - Errors are logged to `threads.log` in the cache directory
+- Explicitly reloading the Threads section with `r` drops unpublished `threads/new-*.md` drafts. Existing thread response drafts are preserved.
 
 ## Policies Section
 
@@ -445,7 +446,7 @@ thread drafts.
 
 ### `gg pr _manage-threads <id>`
 
-Fetches pull request threads from Azure DevOps, writes raw thread response to
+Fetches pull request threads from Azure DevOps, optionally drops unpublished new thread drafts, writes raw thread response to
 `threads.json`, and returns a filtered display payload:
 
 ```json

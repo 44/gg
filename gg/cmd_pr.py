@@ -785,6 +785,19 @@ def _new_thread_drafts_for_manage(cache_dir):
     return result
 
 
+def _drop_new_thread_drafts(cache_dir):
+    drafts_dir = _thread_drafts_dir(cache_dir)
+    if not os.path.isdir(drafts_dir):
+        return 0
+    dropped = 0
+    for name in sorted(os.listdir(drafts_dir)):
+        if not re.fullmatch(r"new-[^.]+\.md", name):
+            continue
+        os.unlink(os.path.join(drafts_dir, name))
+        dropped += 1
+    return dropped
+
+
 def _get_thread_counts_by_file(threads):
     counts = {}
     for thread in threads:
@@ -2250,6 +2263,7 @@ def _get_manage_lua(pr_id, manage_path, cache_dir):
         "local threads_job_id = nil\n"
         "local policies_job_id = nil\n"
         "local diff_open_job_id = nil\n"
+        "local sync_view\n"
         "\n"
         "local function load_threads(force)\n"
         "  local threads_path = cache_dir .. '/threads.json'\n"
@@ -2293,7 +2307,11 @@ def _get_manage_lua(pr_id, manage_path, cache_dir):
         "\n"
         "  threads_loading = true\n"
         "  local job_output = {{}}\n"
-        "  local job_id = vim.fn.jobstart({{'gg', 'pr', '_manage-threads', tostring(pr_id)}}, {{\n"
+        "  local cmd = {{'gg', 'pr', '_manage-threads', tostring(pr_id)}}\n"
+        "  if force then\n"
+        "    table.insert(cmd, '--drop-new-drafts')\n"
+        "  end\n"
+        "  local job_id = vim.fn.jobstart(cmd, {{\n"
         "    stdout_buffered = true,\n"
         "    on_stdout = function(_, data, _)\n"
         "      if data then\n"
@@ -2320,6 +2338,9 @@ def _get_manage_lua(pr_id, manage_path, cache_dir):
         "        local result = table.concat(job_output, '\\n')\n"
         "        local ok, data2 = pcall(vim.fn.json_decode, result)\n"
         "        if ok and data2.status == 'ok' then\n"
+        "          if force and sync_view then\n"
+        "            sync_view(false)\n"
+        "          end\n"
         "          local _, _, _, tlnum, clnum = find_section_boundaries()\n"
         "          if tlnum and clnum then\n"
         "            set_threads_content(data2, tlnum, clnum, buf)\n"
@@ -2518,7 +2539,7 @@ def _get_manage_lua(pr_id, manage_path, cache_dir):
         "  end\n"
         "end\n"
         "\n"
-        "local function sync_view(load_sections)\n"
+        "sync_view = function(load_sections)\n"
         "  if load_sections == nil then\n"
         "    load_sections = true\n"
         "  end\n"
@@ -4206,6 +4227,11 @@ def cmd_pr_manage_threads(args):
     with open(pr_path) as f:
         pr = json.load(f)
 
+    dropped_new_drafts = 0
+    if getattr(args, "drop_new_drafts", False):
+        dropped_new_drafts = _drop_new_thread_drafts(cache_dir)
+        _log(f"dropped_new_thread_drafts={dropped_new_drafts}")
+
     thread_url = pr.get("url", "") + "/threads?api-version=7.1"
     if not thread_url.startswith("http"):
         _log("ERROR: thread URL not found")
@@ -4243,6 +4269,7 @@ def cmd_pr_manage_threads(args):
     payload = {
         "threads": threads,
         "total_threads": len(threads),
+        "dropped_new_thread_drafts": dropped_new_drafts,
     }
 
     threads_path = os.path.join(cache_dir, "threads.json")
